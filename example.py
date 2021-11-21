@@ -22,16 +22,21 @@ query = Query(sqlite3.connect('test.db'))
 
 
 # a = query.create('users', {
-#     'name' : 'Sarah',
 #     'login' : 'killer51',
+#     'password' : 'Password',
 #     'token' : 'token'
 # })
+# print(a)
 
-row = query.select('users', ['login', 'password']).where({
-    'id': 1
-}).first()
+a = query.update('users', {
+    'login' : 'killer51',
+}).where({"id" : 1})
+
+# row = query.select('users', ['login', 'password']).where({
+#     'id': 1
+# }).first()
 
 
-print(row)
+# print(row)
 
 # query.update('')
