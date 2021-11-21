@@ -11,14 +11,14 @@ from query import Query
 #     db = 'name'
 # ))
 
-query = Query(sqlite3.connect('test.db'))
+# query = Query(sqlite3.connect('test.db'))
 
 # query.make('SELECT * FROM users;').all() # Make default query
 
 
 
 
-
+u"hello"
 
 
 # a = query.create('users', {
@@ -28,9 +28,9 @@ query = Query(sqlite3.connect('test.db'))
 # })
 # print(a)
 
-a = query.update('users', {
-    'login' : 'killer51',
-}).where({"id" : 1})
+# a = query.update('users', {
+#     'login' : 'killer51',
+# }).where({"id" : 1})
 
 # row = query.select('users', ['login', 'password']).where({
 #     'id': 1
