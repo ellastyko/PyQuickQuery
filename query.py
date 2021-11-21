@@ -1,17 +1,23 @@
 
 
-#  Module was created to speed up development process and don't write long SQL queries 
-
+"""
+    Module was created to speed up development process and don't write long SQL queries 
+"""
+class QueryException(Exception):
+    pass
+    # TODO
 
 class Query():
 
-    __CurrentQuery = ''
+    __current = {
+        'action' : '',
+        'query' : ''
+    }
 
-    def __init__(self, db : object) -> None: # Parametr is mysql, sqlite or postrgre
+    def __init__(self, database : object) -> None: # Parametr is mysql, sqlite or postrgre
         try:
-            self.db = db
+            self.db = database
             self.sql = self.db.cursor()
-            # self.__subquery = SubQuery()
         except Exception as e:
             print(f"Unable to connect to database: {e}!") 
         else:
@@ -23,35 +29,41 @@ class Query():
 
         try:
             self.sql.execute(query)
-        except:
+        except Exception as e:
+            print(f'Unable to execute query: {e}')
             self.db.rollback()
+            raise Exception       
         else:
             self.db.commit()
             return self
  
 
     # Main operations with DB
-    def create(self, table : str, data : dict):
+    def create(self, table : str, data : dict) -> tuple:
 
         try:
             keys = self.__commas(data.keys(), quotes=True) 
             values = self.__commas(data.values(), quotes=True) 
 
-            print(f"INSERT INTO {table}({keys}) VALUES({values})")
             self.make(f"INSERT INTO {table}({keys}) VALUES({values});")
-        except Exception as e:
-            print(f'Unable to insert data: {e}')
-        else:
-            return 0
+        except:
+            print(f'Unable to insert data!')
+        else:       
+            self.__current['query'] = f'SELECT * FROM {table} WHERE id={self.sql.lastrowid}'
+            return self.first()
+
 
 
     def update(self, table : str, data : dict) -> object:
         
+        # TODO Пофиксить апдейт
+
         try:
             values = self.__equality(data, condition = False)
 
-            print(f"UPDATE {table} SET {values}")
-            self.__CurrentQuery = f"UPDATE {table} SET {values}"
+            # print(f"UPDATE {table} SET {values}")
+            self.__current['action'] = 'update'
+            self.__current['query'] = f"UPDATE {table} SET {values}"
         except:
             print('Unable to update data')
         else:
@@ -60,26 +72,30 @@ class Query():
     
     def select(self, table : str, fields : list) -> object:
         
-        fields = self.__commas(fields)         
-        self.__CurrentQuery = f"SELECT {fields} FROM {table}"
+        fields = self.__commas(fields)      
+        self.__current['action'] = 'select'   
+        self.__current['query'] = f"SELECT {fields} FROM {table}"
         return self
 
 
     def where(self, conditions : dict):
-        if self.__CurrentQuery != '':
+        if self.__current['action'] is 'select':
             conditions = self.__equality(conditions)
-            self.__CurrentQuery += conditions
-            print(self.__CurrentQuery)
+            self.__current['query']  += conditions
             return self
         else:
-            print('Cannt use where!')
+            raise QueryException
 
 
     def first(self) -> tuple:
+
+        self.make(self.current)
         return self.sql.fetchone()
 
+
     def get(self, limit : int = None) -> list:
-        self.make(self.__CurrentQuery)
+
+        self.make(self.current)
         if limit:
             return self.sql.fetchmany(limit)
         else:
@@ -128,5 +144,4 @@ class Query():
 
 
         return string
-
 
