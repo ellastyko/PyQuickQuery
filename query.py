@@ -36,7 +36,8 @@ class Query():
         else:
             self.db.commit()
             return self
- 
+    # DONE
+
 
     # Main operations with DB
     def create(self, table : str, data : dict) -> tuple:
@@ -51,7 +52,7 @@ class Query():
         else:       
             self.__current['query'] = f'SELECT * FROM {table} WHERE id={self.sql.lastrowid}'
             return self.first()
-
+    # DONE
 
 
     def update(self, table : str, data : dict) -> object:
@@ -61,7 +62,7 @@ class Query():
         try:
             values = self.__equality(data, condition = False)
 
-            # print(f"UPDATE {table} SET {values}")
+            print(f"UPDATE {table} SET {values}")
             self.__current['action'] = 'update'
             self.__current['query'] = f"UPDATE {table} SET {values}"
         except:
@@ -79,23 +80,26 @@ class Query():
 
 
     def where(self, conditions : dict):
-        if self.__current['action'] is 'select':
+
+        if self.__current['action'] == 'select':
             conditions = self.__equality(conditions)
             self.__current['query']  += conditions
             return self
+        elif self.__current['action'] == 'update':
+            pass
         else:
             raise QueryException
 
 
     def first(self) -> tuple:
 
-        self.make(self.current)
+        self.make(self.__current['query'])
         return self.sql.fetchone()
 
 
     def get(self, limit : int = None) -> list:
 
-        self.make(self.current)
+        self.make(self.__current['query'])
         if limit:
             return self.sql.fetchmany(limit)
         else:
