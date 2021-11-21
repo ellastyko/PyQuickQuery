@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from setuptools import setup, find_packages
 
 version = "0.0.1"
@@ -17,10 +17,7 @@ setup(
     long_description=readme,
     packages=find_packages(exclude=["tests*", "pymysql.tests*"]),
     python_requires=">=3.6",
-    extras_require={
-        "rsa": ["cryptography"],
-        "ed25519": ["PyNaCl>=1.4.0"],
-    },
+    extras_require={},
     classifiers=[
         "Development Status :: 5 - Development",
         "Programming Language :: Python :: 3",

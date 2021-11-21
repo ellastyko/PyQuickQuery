@@ -28,7 +28,7 @@ Requirements
 Installation
 ------------
 
-Package is uploaded on `PyPI <https://pypi.org/project/PyMySQL>`_.
+Package is uploaded on `PyPI <https://pypi.org/project/PyQuickQuery>`_.
 
 You can install it with pip::
 
