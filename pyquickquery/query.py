@@ -3,20 +3,27 @@
 """
     Module was created to speed up development process and don't write long SQL queries 
 """
-class QueryException(Exception):
-    pass
-    # TODO
 
-class Query():
 
-    __current = {
-        'action' : '',
-        'query' : ''
-    }
+class Query:
 
-    def __init__(self, database : object) -> None: # Parametr is mysql, sqlite or postrgre
+    
+    __query = ''
+    dialect = 'default'
+    dialects = ['default', 'sqlite3', 'mysql', 'postgre3']
+
+
+    def __init__(self, database : object, dialect : str = 'default') -> None: # Parametr is mysql, sqlite or postrgre
+        """
+            database - object of ...
+
+            type - sort of database like mysql, sqlite3, postgre3, etc.
+        """
         try:
             self.db = database
+            if dialect not in self.dialects:
+                raise "Invalid dialect" # Make raise error
+            self.dialect = dialect
             self.sql = self.db.cursor()
         except Exception as e:
             print(f"Unable to connect to database: {e}!") 
@@ -24,7 +31,6 @@ class Query():
             print('Connected')
 
 
-    # Function with executing of 
     def make(self, query) -> object:
 
         try:
@@ -36,23 +42,20 @@ class Query():
         else:
             self.db.commit()
             return self
-    # DONE
 
 
-    # Main operations with DB
     def create(self, table : str, data : dict) -> tuple:
 
         try:
-            keys = self.__commas(data.keys(), quotes=True) 
-            values = self.__commas(data.values(), quotes=True) 
+            keys = ', '.join(f"{self.__quotes(key)}" for key in data.keys())
+            values = ', '.join(f"{self.__quotes(value)}" for value in data.values())
 
-            self.make(f"INSERT INTO {table}({keys}) VALUES({values});")
+            self.make(f"INSERT INTO {table}({keys}) VALUES({values})")
         except:
             print(f'Unable to insert data!')
         else:       
-            self.__current['query'] = f'SELECT * FROM {table} WHERE id={self.sql.lastrowid}'
-            return self.first()
-    # DONE
+            self.make(f'SELECT * FROM {table} WHERE id={self.sql.lastrowid}')
+            return self.sql.fetchone()
 
 
     def update(self, table : str, data : dict) -> object:
@@ -62,90 +65,60 @@ class Query():
         try:
             values = self.__equality(data, condition = False)
 
-            print(f"UPDATE {table} SET {values}")
-            self.__current['action'] = 'update'
-            self.__current['query'] = f"UPDATE {table} SET {values}"
+            self.__query = f"UPDATE {table} SET {values}"
         except:
             print('Unable to update data')
         else:
-            return self
+            return self 
 
     
-    def select(self, table : str, fields : list) -> object:
+    def select(self, table : str, fields : list = '*', where : dict = None, order_by : dict = ['id', 'ASC']) -> list:
         
-        fields = self.__commas(fields)      
-        self.__current['action'] = 'select'   
-        self.__current['query'] = f"SELECT {fields} FROM {table}"
-        return self
+        if type(fields) is list:
+            fields = ', '.join(fields)
+
+        self.__query = f"SELECT {fields} FROM {table}{self.__build_clause(where)}{self.__build_order_by(order_by)}"
+        print(self.__query)
+        return self.get 
 
 
-    def where(self, conditions : dict):
+    def delete(self, table : str, where : dict) -> None:
 
-        if self.__current['action'] == 'select':
-            conditions = self.__equality(conditions)
-            self.__current['query']  += conditions
-            return self
-        elif self.__current['action'] == 'update':
-            pass
-        else:
-            raise QueryException
-
-
-    def first(self) -> tuple:
-
-        self.make(self.__current['query'])
-        return self.sql.fetchone()
+        self.__query = f"DELETE FROM {table}{self.__build_clause(where)}"
+        self.make(self.__query)
 
 
     def get(self, limit : int = None) -> list:
+        """
+            limit of rows
+        """
+        self.make(self.__query)
 
-        self.make(self.__current['query'])
-        if limit:
-            return self.sql.fetchmany(limit)
-        else:
+        if limit is None:
             return self.sql.fetchall()
-
-
-
-
-    # Helpers 
-    def __equality(self, dictionary : dict, condition : bool = True) -> str:
-
-
-        string = ' WHERE ' if condition is True else ''
-
-        for key, field in enumerate(dictionary.keys()):
-
-            # Check up if value is string or integer/decimal
-            if type(dictionary[field]) is str:
-                value = f'"{dictionary[field]}"'
-            else:
-                value = dictionary[field]
-
-            c = '' if key == len(dictionary) - 1 or condition is False else ' AND '
-
-            string += f"{field}={value}{c}"
-
-
-        return string
-
-
-    def __commas(self, arr : list, quotes : bool = False) -> str:
-
-        string = ''
-        if quotes is False:
-            for key, value in enumerate(arr):
-                if key == len(arr) - 1:
-                    string += value
-                else:
-                    string += f'{value}, '
+        elif type(limit) is int and limit > 0:
+            return self.sql.fetchone() if limit == 1 else self.sql.fetchmany(limit)
         else:
-            for key, value in enumerate(arr):
-                if key == len(arr) - 1:
-                    string += f'"{value}"'
-                else:
-                    string += f'"{value}", '
+            print('Invalid get func')
 
 
-        return string
+    def __build_order_by(self, order_by):
+        return " ORDER BY " + ' '.join(order_by)
+
+    def __build_clause(self, where):
+        if where is not None:
+            clause = ' WHERE ' + ' AND '.join(f"{key}={self.__quotes(value)}" for key, value in where.items())
+            return clause
+        else:
+            return ''
+
+    def __quotes(self, field):
+
+        if type(field) is not str:
+            return field
+         
+        if self.dialect == 'mysql':
+            return f"`{field}`" 
+        else:
+            return f"'{field}'"
 

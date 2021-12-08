@@ -1,4 +1,4 @@
-from .query import (Query)
+from query import Query
 
 
 __author__ = 'ellastyko'
